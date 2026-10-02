@@ -21,5 +21,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Run tests
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+          cache-dependency-path: routing-plugin/go.sum
+
+      - name: Run Swift and routing tests
         run: make test
+
+      - name: Exercise pinned backend routing
+        run: make test-routing

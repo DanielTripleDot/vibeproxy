@@ -59,6 +59,13 @@ class ServerManager: ObservableObject {
     @Published private(set) var customProviderCredentials: [String: [CustomProviderCredential]] = [:]
     @Published private(set) var configErrorMessage: String?
 
+    @Published var accountRoutingMode: AccountRoutingMode = .configured {
+        didSet {
+            UserDefaults.standard.set(accountRoutingMode.rawValue, forKey: "accountRoutingMode")
+            requestConfigUpdate()
+        }
+    }
+
     /// CLI flags defined by the bundled backend, parsed from its --help output
     /// (#351, #457, #396). nil until the one-shot probe completes (or for good if
     /// the probe fails); login flows treat nil as "unknown" and keep legacy behavior.
@@ -151,6 +158,7 @@ class ServerManager: ObservableObject {
 
     init() {
         logBuffer = RingBuffer(capacity: maxLogLines)
+        accountRoutingMode = AccountRoutingMode(rawValue: UserDefaults.standard.string(forKey: "accountRoutingMode") ?? "") ?? .configured
         if let saved = UserDefaults.standard.dictionary(forKey: "enabledProviders") as? [String: Bool] {
             enabledProviders = saved
         }
@@ -875,11 +883,12 @@ class ServerManager: ObservableObject {
     }
 
     private func resolveConfigPath() -> Result<String, ConfigResolutionFailure> {
-        resolveConfigPath(enabledProviderStates: enabledProviders)
+        resolveConfigPath(enabledProviderStates: enabledProviders, routingMode: accountRoutingMode)
     }
 
     private func resolveConfigPath(
-        enabledProviderStates: [String: Bool]
+        enabledProviderStates: [String: Bool],
+        routingMode: AccountRoutingMode
     ) -> Result<String, ConfigResolutionFailure> {
         guard bundledConfigPath() != nil else {
             return .failure(ConfigResolutionFailure(message: "Could not locate the bundled config.yaml in the app bundle."))
@@ -944,6 +953,15 @@ class ServerManager: ObservableObject {
         }
 
         do {
+            let pluginDirectory = AccountRoutingConfig.pluginDirectory(in: mergedRoot, authDirectory: authDir)
+            if routingMode == .quotaAware {
+                guard let resourcePath = Bundle.main.resourcePath else {
+                    return .failure(ConfigResolutionFailure(message: "Could not locate the quota routing plugin."))
+                }
+                let source = URL(fileURLWithPath: resourcePath).appendingPathComponent("Plugins/\(AccountRoutingConfig.pluginID).dylib")
+                try AccountRoutingConfig.installPlugin(from: source, into: pluginDirectory)
+            }
+            mergedRoot = AccountRoutingConfig.compose(root: mergedRoot, mode: routingMode, pluginDirectory: pluginDirectory)
             try FileManager.default.createDirectory(at: authDir, withIntermediateDirectories: true)
             let mergedContent = try Yams.dump(object: mergedRoot)
             try mergedContent.write(to: mergedConfigPath, atomically: true, encoding: String.Encoding.utf8)
@@ -1229,6 +1247,7 @@ class ServerManager: ObservableObject {
         }
 
         let enabledProviderSnapshot = enabledProviders
+        let routingModeSnapshot = accountRoutingMode
         hasPendingConfigUpdate = false
         isResolvingConfigUpdate = true
 
@@ -1237,7 +1256,7 @@ class ServerManager: ObservableObject {
                 return
             }
 
-            let result = self.resolveConfigPath(enabledProviderStates: enabledProviderSnapshot)
+            let result = self.resolveConfigPath(enabledProviderStates: enabledProviderSnapshot, routingMode: routingModeSnapshot)
             DispatchQueue.main.async { [weak self] in
                 self?.finishConfigUpdateResolution(result)
             }

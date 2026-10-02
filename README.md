@@ -95,6 +95,10 @@ When you click "Add Account" for Z.AI GLM:
 
 ### Advanced Configuration
 
+**Settings → Account Routing → Quota-aware** ranks Claude accounts and Codex accounts separately by remaining quota divided by time until reset. An account with 45% remaining and three days until reset is preferred over one with 6% remaining and seven days until reset. Exhausted short-term limits make an account unavailable. Background quota checks keep agent requests responsive; configured routing applies while all observations are unavailable.
+
+Choose **Round robin** for equal rotation or **Use configuration** to restore your existing routing settings. See [quota-aware routing](docs/quota-aware-routing.md) for the scoring rule, quota freshness, and public implementations investigated.
+
 VibeProxy supports persistent [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) overrides in:
 
 ```text
@@ -154,13 +158,13 @@ Port 8317 is bound to `127.0.0.1` only by default. If you enable LAN access in S
 
 ### Tests
 
-Run the complete Swift test suite from the repository root:
+Building from source requires Go 1.26 or later as well as Swift. Run the Swift and routing test suites from the repository root:
 
 ```bash
 make test
 ```
 
-Pull requests run the same suite on macOS through GitHub Actions.
+Pull requests run these suites and isolated backend integration tests on macOS through GitHub Actions.
 Local test runs require a full Xcode toolchain because Command Line Tools alone do not include XCTest.
 
 ### Project Structure

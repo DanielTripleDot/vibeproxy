@@ -56,6 +56,12 @@ jobs:
         with:
           swift-version: "5.9"
 
+      - name: Set up Go for routing plugin
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: routing-plugin/go.mod
+          cache-dependency-path: routing-plugin/go.sum
+
       - name: Import Code Signing Certificates
         uses: apple-actions/import-codesign-certs@v2
         with:

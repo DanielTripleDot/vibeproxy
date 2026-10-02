@@ -18,6 +18,8 @@ BUILD_DIR="$SRC_DIR/.build/release"
 APP_DIR="$PROJECT_DIR/$APP_NAME.app"
 
 # Build the Swift executable first
+echo "Building quota-aware routing plugin..."
+bash "$PROJECT_DIR/scripts/build-routing-plugin.sh"
 echo -e "${BLUE}Building Swift executable (release)...${NC}"
 cd "$SRC_DIR"
 if [ -n "$TARGET_ARCH" ]; then
@@ -141,6 +143,9 @@ if [ -n "$CODESIGN_IDENTITY" ]; then
     
     # Remove any existing signatures first
     codesign --remove-signature "$APP_DIR/Contents/MacOS/CLIProxyMenuBar" 2>/dev/null || true
+
+    codesign --force --sign "$CODESIGN_IDENTITY" --options runtime --timestamp \
+        "$APP_DIR/Contents/Resources/Plugins/vibeproxy-quota.dylib"
     
     # Sign the cli-proxy-api-plus binary (required for notarization)
     if [ -f "$APP_DIR/Contents/Resources/cli-proxy-api-plus" ]; then

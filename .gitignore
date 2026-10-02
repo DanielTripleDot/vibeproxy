@@ -31,3 +31,7 @@ src/Sources/Resources/AppIcon.iconset/
 *.log
 test-notarization.sh
 .vscode/settings.json
+
+# Quota-routing plugin build and isolated integration fixtures
+.routing-build/
+src/Sources/Resources/Plugins/

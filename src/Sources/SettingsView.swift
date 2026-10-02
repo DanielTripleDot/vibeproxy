@@ -127,6 +127,7 @@ struct ServiceRow<ExtraContent: View>: View {
     let onToggleDisabled: (AuthAccount) -> Void
     let onToggleEnabled: (Bool) -> Void
     var onExpandChange: ((Bool) -> Void)? = nil
+    var accountRoutingMode: AccountRoutingMode = .configured
     @ViewBuilder var extraContent: () -> ExtraContent
 
     @State private var isExpanded = false
@@ -193,7 +194,8 @@ struct ServiceRow<ExtraContent: View>: View {
                             .foregroundColor(.green)
 
                         if enabledCount > 1 {
-                            Text("• Round-robin w/ auto-failover")
+                            Text(accountRoutingMode == .quotaAware && (serviceType == .claude || serviceType == .codex)
+                                 ? "• Quota-aware w/ auto-failover" : "• Automatic routing w/ auto-failover")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -590,6 +592,22 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Account Routing") {
+                    Picker("Routing mode", selection: $serverManager.accountRoutingMode) {
+                        ForEach(AccountRoutingMode.allCases) { mode in
+                            Text(mode.title).tag(mode)
+                        }
+                    }
+                    if serverManager.accountRoutingMode == .quotaAware {
+                        Text("Prefer the account with the most weekly quota available per day until reset. Claude and Codex accounts are ranked separately; exhausted short-term limits make an account unavailable.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Text("Quota checks run in the background. Normal routing applies while quota data is unavailable.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
                 Section("Services") {
                     ServiceRow(
                         serviceType: .antigravity,
@@ -626,7 +644,8 @@ struct SettingsView: View {
                         onDisconnect: { account in disconnectAccount(account) },
                         onToggleDisabled: { account in toggleAccountDisabled(account) },
                         onToggleEnabled: { enabled in serverManager.setProviderEnabled("claude", enabled: enabled) },
-                        onExpandChange: { expanded in expandedRowCount += expanded ? 1 : -1 }
+                        onExpandChange: { expanded in expandedRowCount += expanded ? 1 : -1 },
+                        accountRoutingMode: serverManager.accountRoutingMode
                     ) {
                         VercelGatewayControls(serverManager: serverManager)
                     }
@@ -647,7 +666,8 @@ struct SettingsView: View {
                         onDisconnect: { account in disconnectAccount(account) },
                         onToggleDisabled: { account in toggleAccountDisabled(account) },
                         onToggleEnabled: { enabled in serverManager.setProviderEnabled("codex", enabled: enabled) },
-                        onExpandChange: { expanded in expandedRowCount += expanded ? 1 : -1 }
+                        onExpandChange: { expanded in expandedRowCount += expanded ? 1 : -1 },
+                        accountRoutingMode: serverManager.accountRoutingMode
                     ) { EmptyView() }
 
                     ServiceRow(
