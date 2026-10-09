@@ -6,6 +6,55 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.8.328] - 2026-10-09
+
+### Updated
+- **CLIProxyAPI 8.0.22** - Latest upstream release (#588)
+  - Various upstream improvements and stability enhancements
+
+
+## [1.8.327] - 2026-10-08
+
+### Updated
+- **CLIProxyAPI 8.0.20** - Latest upstream release (#587)
+  - Various upstream improvements and stability enhancements
+
+
+## [1.8.326] - 2026-10-07
+
+### Updated
+- **CLIProxyAPI 8.0.17** - Latest upstream release (#586)
+  - Various upstream improvements and stability enhancements
+
+
+## [1.8.325] - 2026-10-06
+
+### Updated
+- **CLIProxyAPI 8.0.16** - Latest upstream release (#585)
+  - Various upstream improvements and stability enhancements
+
+
+## [1.8.324] - 2026-10-05
+
+### Updated
+- **CLIProxyAPI 8.0.15** - Latest upstream release (#584)
+  - Various upstream improvements and stability enhancements
+
+
+## [1.8.323] - 2026-10-03
+
+### Updated
+- **CLIProxyAPI 8.0.13** - Latest upstream release (#583)
+  - Various upstream improvements and stability enhancements
+
+
+## [1.8.322] - 2026-10-03
+
+### Updated
+- **CLIProxyAPI 8.0.12** - Latest upstream release (#582)
+  - Various upstream improvements and stability enhancements
+
+
 ## [1.8.321] - 2026-10-02
 
 ### Updated
@@ -2686,6 +2735,13 @@ All future changes will be documented here before release.
 
 ---
 
+[1.8.328]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.328
+[1.8.327]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.327
+[1.8.326]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.326
+[1.8.325]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.325
+[1.8.324]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.324
+[1.8.323]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.323
+[1.8.322]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.322
 [1.8.321]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.321
 [1.8.320]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.320
 [1.8.319]: https://github.com/automazeio/vibeproxy/releases/tag/v1.8.319

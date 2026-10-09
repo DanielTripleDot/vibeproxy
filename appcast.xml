@@ -6,6 +6,72 @@
     <description>Most recent updates to VibeProxy</description>
     <language>en</language>
     <item>
+      <title>Version 1.8.328</title>
+      <sparkle:version>1240</sparkle:version>
+      <sparkle:shortVersionString>1.8.328</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <pubDate>Fri, 09 Oct 2026 00:17:46 +0000</pubDate>
+      <enclosure url="https://github.com/automazeio/vibeproxy/releases/download/v1.8.328/VibeProxy-arm64.zip"
+                 type="application/octet-stream"
+                 sparkle:edSignature="luJWURBvdEW3L7F3Sy0G9q8qSBEPleA4GRi3zssl/cC+Wat4y+4liSO5Cm1ly/gPiyQZ7/69QJSTCJkQXAqXBg=="
+                 length="26173487"/>
+    </item>
+    <item>
+      <title>Version 1.8.327</title>
+      <sparkle:version>1237</sparkle:version>
+      <sparkle:shortVersionString>1.8.327</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <pubDate>Thu, 08 Oct 2026 00:16:03 +0000</pubDate>
+      <enclosure url="https://github.com/automazeio/vibeproxy/releases/download/v1.8.327/VibeProxy-arm64.zip"
+                 type="application/octet-stream"
+                 sparkle:edSignature="WR9Fo8pF7RNydZSve7nW85MFbErXrrjviIx/HMmqpUau0EP5BZAeXUpL4OCWY7vNoARfmqvu5rqlG90DtHAzDw=="
+                 length="26141074"/>
+    </item>
+    <item>
+      <title>Version 1.8.326</title>
+      <sparkle:version>1234</sparkle:version>
+      <sparkle:shortVersionString>1.8.326</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <pubDate>Wed, 07 Oct 2026 12:13:52 +0000</pubDate>
+      <enclosure url="https://github.com/automazeio/vibeproxy/releases/download/v1.8.326/VibeProxy-arm64.zip"
+                 type="application/octet-stream"
+                 sparkle:edSignature="lqpcZHeiqsxpbDL8kBozzMtOBu2Ou1X+LvAD+JLbMXtdW1ASpnWb0qMUDO//wqdCfpM6C+2+vD08VyZ/THrLBg=="
+                 length="26096158"/>
+    </item>
+    <item>
+      <title>Version 1.8.325</title>
+      <sparkle:version>1231</sparkle:version>
+      <sparkle:shortVersionString>1.8.325</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <pubDate>Tue, 06 Oct 2026 00:17:17 +0000</pubDate>
+      <enclosure url="https://github.com/automazeio/vibeproxy/releases/download/v1.8.325/VibeProxy-arm64.zip"
+                 type="application/octet-stream"
+                 sparkle:edSignature="TfBYAfg8gb4ntgy2ahZbPz8EdSirGoVc8u1uu4p4uVq00tW47iKdO3cZuT/9DRI732fVX7la4Bc6rCIREd4dBQ=="
+                 length="26091939"/>
+    </item>
+    <item>
+      <title>Version 1.8.323</title>
+      <sparkle:version>1226</sparkle:version>
+      <sparkle:shortVersionString>1.8.323</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <pubDate>Sat, 03 Oct 2026 13:35:53 +0000</pubDate>
+      <enclosure url="https://github.com/automazeio/vibeproxy/releases/download/v1.8.323/VibeProxy-arm64.zip"
+                 type="application/octet-stream"
+                 sparkle:edSignature="D7EmYQJD9bOthLreBZzZ6sI39R0xqLjUWPECYUsa8/vLbPWAcFV3xZDt79I1Vb5rGt/BaTYTp+Lz+q48yBqZDw=="
+                 length="26009142"/>
+    </item>
+    <item>
+      <title>Version 1.8.322</title>
+      <sparkle:version>1223</sparkle:version>
+      <sparkle:shortVersionString>1.8.322</sparkle:shortVersionString>
+      <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+      <pubDate>Sat, 03 Oct 2026 00:16:02 +0000</pubDate>
+      <enclosure url="https://github.com/automazeio/vibeproxy/releases/download/v1.8.322/VibeProxy-arm64.zip"
+                 type="application/octet-stream"
+                 sparkle:edSignature="eeSJs2S+O0xEPYEA2cvwZIWaKNNeVi///a5lhXRyrZvlBaVLu4LDFp8Z4OGLsYtmq7dIXHj+87DiMCNXr0AdBg=="
+                 length="26002834"/>
+    </item>
+    <item>
       <title>Version 1.8.321</title>
       <sparkle:version>1220</sparkle:version>
       <sparkle:shortVersionString>1.8.321</sparkle:shortVersionString>
