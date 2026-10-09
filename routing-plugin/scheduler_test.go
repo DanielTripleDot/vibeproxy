@@ -100,6 +100,21 @@ func TestUnknownExpiredAndStaleDoNotInventFullQuota(t *testing.T) {
 	}
 }
 
+func TestIdleObservationStillRanksAccounts(t *testing.T) {
+	s := offlineScheduler()
+	defer s.shutdown()
+	a, b := candidate("codex", "a"), candidate("codex", "b")
+	cached(s, a, window(.01, 117, true))
+	cached(s, b, window(.83, 117, true))
+	idle := time.Now().Add(-10 * time.Minute)
+	for _, c := range []pluginapi.SchedulerAuthCandidate{a, b} {
+		s.entries[c.Provider+":"+c.ID].snapshot.observed = idle
+	}
+	if got := s.pick(request("codex", a, b)); got.AuthID != b.ID {
+		t.Fatalf("idle observation delegated or misranked: %+v", got)
+	}
+}
+
 func TestNeverCrossProviderPoolsOrSelectIneligibleAccount(t *testing.T) {
 	s := offlineScheduler()
 	a, b := candidate("claude", "a"), candidate("codex", "b")

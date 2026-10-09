@@ -11,7 +11,11 @@ import (
 )
 
 const refreshInterval = 30 * time.Second
-const maxSnapshotAge = 2 * time.Minute
+
+// Quota is only refreshed when requests arrive, so the first request after an
+// idle period sees an old observation. Ranking with it while the refresh runs
+// beats delegating to the backend selector, which ignores quota entirely.
+const maxSnapshotAge = time.Hour
 
 type quotaWindow struct {
 	remaining float64 // fraction, not percent
