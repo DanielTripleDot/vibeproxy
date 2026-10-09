@@ -92,7 +92,7 @@ func parseQuota(provider string, raw []byte, observed time.Time) (quotaSnapshot,
 			if err != nil {
 				return q, errQuotaUnavailable
 			}
-			q.windows = append(q.windows, quotaWindow{remaining: (100 - *w.Utilization) / 100, reset: reset, model: model, long: key != "five_hour"})
+			q.windows = append(q.windows, quotaWindow{name: key, remaining: (100 - *w.Utilization) / 100, reset: reset, model: model, long: key != "five_hour"})
 		}
 		// Newer Claude payloads expose scoped weekly limits in a limits array.
 		var limits []struct {
@@ -131,7 +131,7 @@ func parseQuota(provider string, raw []byte, observed time.Time) (quotaSnapshot,
 				if err != nil || !validPercent(limit.Percent) {
 					return q, errQuotaUnavailable
 				}
-				q.windows = append(q.windows, quotaWindow{remaining: (100 - *limit.Percent) / 100, reset: reset, model: model, long: limit.Kind != "session"})
+				q.windows = append(q.windows, quotaWindow{name: limit.Kind, remaining: (100 - *limit.Percent) / 100, reset: reset, model: model, long: limit.Kind != "session"})
 			}
 		}
 	} else if provider == "codex" {
@@ -212,7 +212,11 @@ func codexWindows(limit *codexLimit, model string, observed time.Time) ([]quotaW
 		if w.WindowSeconds != nil {
 			long = *w.WindowSeconds >= 24*60*60
 		}
-		windows = append(windows, quotaWindow{remaining: remaining, reset: reset, model: model, long: long})
+		name := "primary_window"
+		if i == 1 {
+			name = "secondary_window"
+		}
+		windows = append(windows, quotaWindow{name: name, remaining: remaining, reset: reset, model: model, long: long})
 	}
 	return windows, nil
 }

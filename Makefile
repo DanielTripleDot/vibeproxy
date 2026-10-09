@@ -1,4 +1,4 @@
-.PHONY: build app install clean run test help routing-plugin test-routing
+.PHONY: build app install clean run test help routing-plugin test-routing usage-mcp
 
 help: ## Show this help message
 	@echo "VibeProxy - macOS Menu Bar App"
@@ -6,7 +6,7 @@ help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
-build: routing-plugin ## Build the Swift executable (debug)
+build: routing-plugin usage-mcp ## Build the Swift executable (debug)
 	@echo "🔨 Building Swift executable..."
 	@cd src && swift build
 	@echo "✅ Build complete: src/.build/debug/CLIProxyMenuBar"
@@ -80,3 +80,6 @@ edit-config: ## Edit the bundled config.yaml
 
 # Shortcuts
 all: app ## Same as 'app'
+
+usage-mcp: ## Build the standalone local usage MCP server
+	@bash scripts/build-usage-mcp.sh

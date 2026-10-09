@@ -99,6 +99,9 @@ When you click "Add Account" for Z.AI GLM:
 
 Choose **Round robin** for equal rotation or **Use configuration** to restore your existing routing settings. See [quota-aware routing](docs/quota-aware-routing.md) for the scoring rule, quota freshness, and public implementations investigated.
 
+Agents can query this machine’s remaining Claude/Codex quota and reset times through the standalone [usage MCP server](docs/usage-mcp.md). Build it with `make usage-mcp` and connect it as a stdio MCP server; no proxy restart is needed.
+
+
 VibeProxy supports persistent [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) overrides in:
 
 ```text

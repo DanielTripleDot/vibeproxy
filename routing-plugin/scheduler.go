@@ -18,6 +18,7 @@ const refreshInterval = 30 * time.Second
 const maxSnapshotAge = time.Hour
 
 type quotaWindow struct {
+	name      string  // provider window identifier, exposed by the usage MCP server
 	remaining float64 // fraction, not percent
 	reset     time.Time
 	model     string // empty means all models

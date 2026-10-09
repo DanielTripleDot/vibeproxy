@@ -1,3 +1,5 @@
+//go:build !usage_mcp
+
 // The C ABI follows CLIProxyAPI's examples/plugin/scheduler (MIT licensed).
 package main
 

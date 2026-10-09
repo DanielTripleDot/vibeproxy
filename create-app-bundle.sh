@@ -20,6 +20,7 @@ APP_DIR="$PROJECT_DIR/$APP_NAME.app"
 # Build the Swift executable first
 echo "Building quota-aware routing plugin..."
 bash "$PROJECT_DIR/scripts/build-routing-plugin.sh"
+bash "$PROJECT_DIR/scripts/build-usage-mcp.sh"
 echo -e "${BLUE}Building Swift executable (release)...${NC}"
 cd "$SRC_DIR"
 if [ -n "$TARGET_ARCH" ]; then
@@ -147,6 +148,9 @@ if [ -n "$CODESIGN_IDENTITY" ]; then
     codesign --force --sign "$CODESIGN_IDENTITY" --options runtime --timestamp \
         "$APP_DIR/Contents/Resources/Plugins/vibeproxy-quota.dylib"
     
+    codesign --force --sign "$CODESIGN_IDENTITY" --options runtime --timestamp \
+        "$APP_DIR/Contents/Resources/Tools/vibeproxy-usage-mcp"
+
     # Sign the cli-proxy-api-plus binary (required for notarization)
     if [ -f "$APP_DIR/Contents/Resources/cli-proxy-api-plus" ]; then
         echo -e "${BLUE}Signing cli-proxy-api-plus binary...${NC}"

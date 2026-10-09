@@ -35,3 +35,4 @@ test-notarization.sh
 # Quota-routing plugin build and isolated integration fixtures
 .routing-build/
 src/Sources/Resources/Plugins/
+src/Sources/Resources/Tools/
