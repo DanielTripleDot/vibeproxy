@@ -34,7 +34,7 @@ The selection is saved as an app preference. VibeProxy installs its bundled libr
 
 `make test` builds the library and runs Swift tests and Go tests with the race detector. Source builds require Go 1.26 or later. `create-app-bundle.sh` builds the library for the same architecture as the app and signs it alongside the bundled backend.
 
-`make test-routing` exercises account-specific credential callbacks, normal and streaming Claude/Codex requests, the example above, upstream 429 failover, and switching back to round robin. Its accounts and provider responses are synthetic and all provider traffic terminates at a local TLS fixture. On macOS it builds the exact pinned CLIProxyAPI v8.0.10 source with Go 1.27, which supports a process-local certificate override; it does not alter system trust or replace the shipped backend. The shipped backend's plugin loading is also checked separately during development.
+`make test-routing` exercises account-specific credential callbacks, normal and streaming Claude/Codex requests, the example above, upstream 429 failover, and switching back to round robin. Its accounts and provider responses are synthetic and all provider traffic terminates at a local TLS fixture. On macOS it builds the exact CLIProxyAPI source version pinned in `routing-plugin/go.mod` with Go 1.27, which supports a process-local certificate override; it does not alter system trust or replace the shipped backend. The shipped backend's plugin loading is also checked separately during development.
 
 ## Public implementations investigated
 
