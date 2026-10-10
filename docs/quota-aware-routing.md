@@ -2,6 +2,25 @@
 
 Select **Settings → Account Routing → Quota-aware**. Claude OAuth accounts form one pool and Codex OAuth accounts form another. VibeProxy does not compare quota percentages across providers.
 
+Use **Minimum remaining quota** to reserve headroom on a specific Claude or Codex subscription. For example, setting `10%` excludes that subscription when any quota window applicable to the request is at `10%` or below. The default `0%` keeps the existing behavior. A reserved subscription fails closed while its quota is unknown, so a stale or failed usage check cannot bypass the reserve. Saving a minimum automatically enables quota-aware routing; clear all minimums to choose another mode.
+
+Minimums are persisted in VibeProxy preferences, separately from credentials, and copied into the runtime plugin configuration. They apply on the next selection after config reload; existing requests are not cancelled. Checks happen at most every 30 seconds on demand, so this is based on observed quota, not a token-exact spending cap. A nonzero minimum requires an observation no older than 30 seconds. After idle time or reset, the account stays excluded until its background check succeeds. If all accounts are excluded, requests receive `quota_exceeded` rather than using a reserved account. `100%` always excludes an account; manual account disabling still takes precedence.
+
+For a standalone CLIProxyAPI installation, the same plugin accepts this configuration (keys are auth IDs, normally filenames relative to `auth-dir`):
+
+```yaml
+plugins:
+  enabled: true
+  configs:
+    vibeproxy-quota:
+      enabled: true
+      priority: 1
+      minimum-remaining-percent:
+        codex-example.json: 10
+```
+
+In the Mac app, use the native settings controls: `merged-config.yaml` is generated and the upstream web management page does not own these preferences.
+
 For each eligible account, the scheduler computes:
 
 ```text
@@ -24,7 +43,7 @@ This is a headroom heuristic, not a forecast of future token consumption. Percen
 - Claude's session, aggregate weekly, OAuth-app weekly, and model-scoped weekly limits are supported in both legacy and structured payloads. Codex window durations distinguish short and long limits; applicable model-specific quotas are separate from code-review quotas.
 - Quota observations refresh on demand every 30 seconds, with at most eight concurrent requests and an eight-second request timeout. Agent requests do not wait for quota requests.
 - Quota is refreshed only when requests arrive, so after an idle period the last observation still ranks accounts while a fresh one is fetched. Observations older than one hour, failed checks, and reset times that have passed become unknown. A passed reset never implies full quota. When every account is unknown, the backend's configured selector handles the request. Known usable accounts are preferred over unknown accounts; unknown accounts are tried before known exhausted accounts.
-- Global and per-account proxy settings apply to usage requests. Custom API-key providers and mixed-provider requests retain the backend's selection.
+- Global and per-account proxy settings apply to usage requests. Custom API-key providers and mixed-provider requests retain the backend's selection unless a mixed request includes an account with a saved reserve. In that case, reserves are enforced and eligible accounts rotate without comparing percentages across providers.
 
 When quota data is available, this opt-in mode selects across manual account priority tiers and may change accounts between requests despite session affinity. It becomes the active scheduler ahead of other configured scheduler plugins. **Use configuration** restores the user-owned routing and plugin configuration. **Round robin** disables this quota plugin and selects the backend's round-robin strategy; other user-configured plugins remain enabled.
 

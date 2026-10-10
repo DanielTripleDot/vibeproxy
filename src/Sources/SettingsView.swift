@@ -507,6 +507,46 @@ struct CustomProviderRow: View {
     }
 }
 
+struct QuotaMinimumRow: View {
+    let account: AuthAccount
+    let minimum: Int
+    let save: (Int) -> Void
+    @State private var draft = ""
+
+    private var value: Int? {
+        guard let percent = Int(draft), (0...100).contains(percent) else { return nil }
+        return percent
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(account.type.displayName) · \(account.displayName)")
+                    .font(.caption)
+                Text(account.id)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .help(account.id)
+            }
+            Spacer()
+            TextField("0", text: $draft)
+                .textFieldStyle(.roundedBorder)
+                .frame(width: 46)
+                .accessibilityLabel("Minimum remaining quota for \(account.id)")
+                .onSubmit { if let value { save(value) } }
+            Text("%")
+            Button("Save") { if let value { save(value) } }
+                .controlSize(.small)
+                .disabled(value == nil || value == minimum)
+        }
+        .onAppear { draft = String(minimum) }
+        .onChange(of: minimum) { draft = String($0) }
+        .help("Enter a whole percentage from 0 to 100. Changes apply after saving.")
+    }
+}
+
 struct SettingsView: View {
     @ObservedObject var serverManager: ServerManager
     @StateObject private var authManager = AuthManager()
@@ -598,11 +638,39 @@ struct SettingsView: View {
                             Text(mode.title).tag(mode)
                         }
                     }
+                    .disabled(!serverManager.quotaMinimums.isEmpty)
                     if serverManager.accountRoutingMode == .quotaAware {
                         Text("Prefer the account with the most weekly quota available per day until reset. Claude and Codex accounts are ranked separately; exhausted short-term limits make an account unavailable.")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("Quota checks run in the background. Normal routing applies while quota data is unavailable.")
+                        Text("Quota checks run in the background. Accounts with a minimum above 0% wait for a valid quota reading; other accounts can use normal routing while quota is unavailable.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Section("Minimum remaining quota") {
+                    Text("Stop using a subscription when an applicable quota window reaches this percentage or below. It returns automatically after a fresh reading is above the minimum. Default: 0%.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    ForEach(authManager.accounts(for: .claude) + authManager.accounts(for: .codex)) { account in
+                        QuotaMinimumRow(account: account, minimum: serverManager.quotaMinimums[account.id] ?? 0) { percent in
+                            serverManager.setQuotaMinimum(percent, for: account.id)
+                        }
+                    }
+                    // Keep saved policies removable even after an account is deleted.
+                    ForEach(serverManager.quotaMinimums.keys.sorted().filter { id in
+                        !(authManager.accounts(for: .claude) + authManager.accounts(for: .codex)).contains { $0.id == id }
+                    }, id: \.self) { id in
+                        HStack {
+                            Text("\(id) (account unavailable)").font(.caption)
+                            Spacer()
+                            Text("\(serverManager.quotaMinimums[id] ?? 0)%")
+                            Button("Clear") { serverManager.setQuotaMinimum(0, for: id) }
+                        }
+                    }
+                    if !serverManager.quotaMinimums.isEmpty {
+                        Text("Saved minimums keep quota-aware routing enabled. Set all minimums to 0% to choose another routing mode.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

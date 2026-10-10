@@ -33,6 +33,8 @@ import "C"
 
 import (
 	"encoding/json"
+	"fmt"
+	"math"
 	"unsafe"
 
 	"github.com/router-for-me/CLIProxyAPI/v8/sdk/pluginabi"
@@ -174,16 +176,22 @@ func handleMethod(method string, raw []byte) (any, error) {
 			return nil, err
 		}
 		var cfg struct {
-			ProxyURL string `yaml:"proxy-url"`
+			ProxyURL string             `yaml:"proxy-url"`
+			Minimums map[string]float64 `yaml:"minimum-remaining-percent"`
 		}
 		if err := yaml.Unmarshal(lifecycle.ConfigYAML, &cfg); err != nil {
 			return nil, err
 		}
-		scheduler.configure(cfg.ProxyURL)
+		for id, percent := range cfg.Minimums {
+			if id == "" || math.IsNaN(percent) || math.IsInf(percent, 0) || percent < 0 || percent > 100 {
+				return nil, fmt.Errorf("minimum-remaining-percent must contain percentages from 0 to 100")
+			}
+		}
+		scheduler.configure(cfg.ProxyURL, cfg.Minimums)
 		return map[string]any{
 			"schema_version": pluginabi.SchemaVersion,
 			"metadata": pluginapi.Metadata{
-				Name: "VibeProxy quota-aware routing", Version: "1.0.0", Author: "VibeProxy",
+				Name: "VibeProxy quota-aware routing", Version: "1.1.0", Author: "VibeProxy",
 				GitHubRepository: "https://github.com/automazeio/vibeproxy",
 			},
 			"capabilities": map[string]bool{"scheduler": true, "scheduler_across_priorities": true},

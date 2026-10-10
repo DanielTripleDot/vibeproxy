@@ -2,6 +2,18 @@ import XCTest
 @testable import CLIProxyMenuBar
 
 final class AccountRoutingTests: XCTestCase {
+    func testMinimumsEnableRoutingEvenWhenOtherModeWasSelected() {
+        for mode in AccountRoutingMode.allCases {
+            let result = AccountRoutingConfig.compose(root: [:], mode: mode, pluginDirectory: URL(fileURLWithPath: "/plugins"), minimums: ["codex-a.json": 10])
+            let plugins = ConfigComposer.stringKeyedDictionary(result["plugins"] as Any)!
+            let configs = ConfigComposer.stringKeyedDictionary(plugins["configs"] as Any)!
+            let own = ConfigComposer.stringKeyedDictionary(configs[AccountRoutingConfig.pluginID] as Any)!
+            XCTAssertEqual(plugins["enabled"] as? Bool, true)
+            XCTAssertEqual(own["enabled"] as? Bool, true)
+            XCTAssertEqual(own["minimum-remaining-percent"] as? [String: Int], ["codex-a.json": 10])
+        }
+    }
+
     func testConfiguredModePreservesUserRoutingAndPlugins() {
         let root: [String: Any] = ["routing": ["strategy": "fill-first", "session-affinity": true], "plugins": ["enabled": true, "dir": "/custom/plugins"]]
         let result = AccountRoutingConfig.compose(root: root, mode: .configured, pluginDirectory: URL(fileURLWithPath: "/unused"))

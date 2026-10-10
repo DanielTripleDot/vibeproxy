@@ -164,8 +164,14 @@ def main():
         proxy_url = f"http://127.0.0.1:{mock.server_port}"
         config = fixture / "config.yaml"
 
-        def write_config(enabled):
-            config.write_text(f"host: 127.0.0.1\nport: {port}\nauth-dir: {json.dumps(str(auth))}\nproxy-url: {json.dumps(proxy_url)}\nrequest-retry: 0\nremote-management:\n  secret-key: ''\n  disable-control-panel: true\nrouting:\n  strategy: round-robin\nplugins:\n  enabled: true\n  dir: {json.dumps(str(plugins))}\n  configs:\n    vibeproxy-quota:\n      enabled: {str(enabled).lower()}\n      priority: 1\n      proxy-url: {json.dumps(proxy_url)}\n")
+        def write_config(enabled, minimums=None):
+            content = f"host: 127.0.0.1\nport: {port}\nauth-dir: {json.dumps(str(auth))}\nproxy-url: {json.dumps(proxy_url)}\nrequest-retry: 0\nremote-management:\n  secret-key: ''\n  disable-control-panel: true\nrouting:\n  strategy: round-robin\nplugins:\n  enabled: true\n  dir: {json.dumps(str(plugins))}\n  configs:\n    vibeproxy-quota:\n      enabled: {str(enabled).lower()}\n      priority: 1\n      proxy-url: {json.dumps(proxy_url)}\n"
+
+            if minimums is not None:
+                content += "      minimum-remaining-percent: " + json.dumps(minimums) + "\n"
+            pending = config.with_suffix(".pending")
+            pending.write_text(content)
+            pending.replace(config)
 
         write_config(True)
         environment = {**os.environ, "SSL_CERT_FILE": str(cert), "GODEBUG": "x509sslcertoverrideplatform=1"}
@@ -248,6 +254,51 @@ def main():
                         raise AssertionError("Hot reload did not re-enable quota routing")
                     time.sleep(.2)
                 print("PASS switching quota mode on refreshes observations and restores quota routing")
+
+                # Reserve the normally preferred accounts at exactly their 45%
+                # remaining quota. Config changes must apply without a restart.
+                write_config(True, {f"{p}-high.json": 45 for p in ("claude", "codex")})
+                deadline = time.monotonic()+12
+                while True:
+                    if all(all(f"fixture-{provider}-low" in infer(provider, stream)
+                               for stream in (False, True)) for provider in ("claude", "codex")):
+                        break
+                    if time.monotonic()>deadline:
+                        raise AssertionError("Quota minimum failed to exclude the preferred account at its exact boundary")
+                    time.sleep(.2)
+                print("PASS per-account minimum hot reload excludes accounts at the exact boundary, normal and streaming")
+
+                write_config(True, {f"{p}-{suffix}.json": 100 for p in ("claude", "codex") for suffix in ("low", "high")})
+                deadline = time.monotonic()+12
+                while True:
+                    blocked = 0
+                    for provider in ("claude", "codex"):
+                        try:
+                            infer(provider)
+                        except AssertionError as error:
+                            if "quota_exceeded" not in str(error):
+                                raise
+                            blocked += 1
+                    if blocked == 2:
+                        break
+                    if time.monotonic()>deadline:
+                        raise AssertionError("All-reserved pool fell back to a protected account")
+                    time.sleep(.2)
+                print("PASS all-reserved pools reject without backend fallback")
+
+                write_config(True, {})
+                deadline = time.monotonic()+12
+                while True:
+                    try:
+                        if all(f"fixture-{provider}-high" in infer(provider) for provider in ("claude", "codex")):
+                            break
+                    except AssertionError as error:
+                        if "quota_exceeded" not in str(error):
+                            raise
+                    if time.monotonic()>deadline:
+                        raise AssertionError("Clearing minimums did not restore routing")
+                    time.sleep(.2)
+                print("PASS clearing minimums restores routing without restart")
 
                 fail_high = True
                 for provider in ("claude", "codex"):

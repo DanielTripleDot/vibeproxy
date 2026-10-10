@@ -26,13 +26,17 @@ enum AccountRoutingConfig {
         return authDirectory.appendingPathComponent("plugins", isDirectory: true)
     }
 
-    static func compose(root: [String: Any], mode: AccountRoutingMode, pluginDirectory: URL) -> [String: Any] {
+    static func compose(root: [String: Any], mode: AccountRoutingMode, pluginDirectory: URL, minimums: [String: Int] = [:]) -> [String: Any] {
+        let minimums = minimums.filter { !$0.key.isEmpty && (1...100).contains($0.value) }
+        // A saved reserve must never silently stop being enforced after a mode change.
+        let mode: AccountRoutingMode = minimums.isEmpty ? mode : .quotaAware
         guard mode != .configured else { return root }
         var result = root
         var plugins = ConfigComposer.stringKeyedDictionary(root["plugins"] as Any) ?? [:]
         var configs = ConfigComposer.stringKeyedDictionary(plugins["configs"] as Any) ?? [:]
         var ownConfig = ConfigComposer.stringKeyedDictionary(configs[pluginID] as Any) ?? [:]
         ownConfig["enabled"] = mode == .quotaAware
+        ownConfig["minimum-remaining-percent"] = minimums
         if mode == .quotaAware {
             plugins["enabled"] = true
             plugins["dir"] = pluginDirectory.path

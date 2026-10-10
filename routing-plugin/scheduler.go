@@ -33,7 +33,14 @@ type quotaSnapshot struct {
 // Expired observations are unknown: a reset never implies a newly full quota.
 // The most restrictive applicable window bounds sustainable usage until reset.
 func (q quotaSnapshot) score(model string, now time.Time) (float64, bool) {
+	return q.scoreAbove(model, now, 0)
+}
+
+func (q quotaSnapshot) scoreAbove(model string, now time.Time, minimum float64) (float64, bool) {
 	if q.observed.IsZero() || now.Sub(q.observed) > maxSnapshotAge || now.Before(q.observed) {
+		return 0, false
+	}
+	if minimum > 0 && now.Sub(q.observed) > refreshInterval {
 		return 0, false
 	}
 	score := math.Inf(1)
@@ -47,7 +54,7 @@ func (q quotaSnapshot) score(model string, now time.Time) (float64, bool) {
 		if !w.reset.After(now) {
 			return 0, false
 		}
-		exhausted = exhausted || w.remaining <= 0
+		exhausted = exhausted || w.remaining <= minimum
 		applicable = append(applicable, w)
 		hasLong = hasLong || w.long
 	}
@@ -93,6 +100,7 @@ type quotaScheduler struct {
 	workers  chan struct{}
 	active   sync.WaitGroup
 	closed   bool
+	minimums map[string]float64 // percent, keyed by backend auth ID (relative auth filename)
 }
 
 func newScheduler(fetch quotaFetcher) *quotaScheduler {
@@ -105,13 +113,19 @@ func newScheduler(fetch quotaFetcher) *quotaScheduler {
 	}}
 }
 
-func (s *quotaScheduler) configure(proxy string) {
+func (s *quotaScheduler) configure(proxy string, minimums ...map[string]float64) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if proxy != s.proxyURL {
 		s.entries = make(map[string]*cacheEntry)
 	}
 	s.proxyURL = proxy
+	s.minimums = make(map[string]float64)
+	if len(minimums) > 0 {
+		for id, percent := range minimums[0] {
+			s.minimums[id] = percent
+		}
+	}
 }
 func (s *quotaScheduler) shutdown() {
 	s.mu.Lock()
@@ -142,12 +156,10 @@ func (s *quotaScheduler) pick(req pluginapi.SchedulerPickRequest) pluginapi.Sche
 	if provider == "" && len(req.Providers) == 1 {
 		provider = req.Providers[0]
 	}
-	if provider != "claude" && provider != "codex" {
-		return pluginapi.SchedulerPickResponse{}
-	}
+	mixed := provider != "claude" && provider != "codex"
 	for _, c := range req.Candidates {
 		if c.Provider != provider {
-			return pluginapi.SchedulerPickResponse{}
+			mixed = true
 		}
 	}
 	now := time.Now()
@@ -156,12 +168,28 @@ func (s *quotaScheduler) pick(req pluginapi.SchedulerPickRequest) pluginapi.Sche
 	if s.closed {
 		return pluginapi.SchedulerPickResponse{}
 	}
+	if mixed {
+		protected := false
+		for _, c := range req.Candidates {
+			protected = protected || s.minimums[c.ID] > 0
+		}
+		if !protected {
+			return pluginapi.SchedulerPickResponse{}
+		}
+	}
 	var bestID string
+	var bestKey string
 	bestScore := -1.0
 	var bestLastPick uint64
 	var unknown []string
 	for _, c := range req.Candidates {
-		key := provider + ":" + c.ID
+		if c.Provider != "claude" && c.Provider != "codex" {
+			if s.minimums[c.ID] == 0 {
+				unknown = append(unknown, c.ID)
+			}
+			continue
+		}
+		key := c.Provider + ":" + c.ID
 		cred := credentialFor(c, s.proxyURL)
 		fingerprint := sha256.Sum256([]byte(cred.provider + "\x00" + cred.token + "\x00" + cred.accountID + "\x00" + cred.proxyURL))
 		entry := s.entries[key]
@@ -182,16 +210,27 @@ func (s *quotaScheduler) pick(req pluginapi.SchedulerPickRequest) pluginapi.Sche
 			default:
 			}
 		}
-		score, known := entry.snapshot.score(req.Model, now)
+		minimum := s.minimums[c.ID] / 100
+		score, known := entry.snapshot.scoreAbove(req.Model, now, minimum)
 		if !known {
-			unknown = append(unknown, c.ID)
+			// Reserves fail closed, including cold start, failed refresh and reset.
+			// A request must never bypass a reserve via the backend fallback.
+			if minimum == 0 {
+				unknown = append(unknown, c.ID)
+			}
 			continue
 		}
 		if score <= 0 {
 			continue
 		}
+		// Mixed-provider aliases still enforce reserves, but never compare
+		// percentages across providers. Rotate among observed eligible accounts.
+		if mixed {
+			score = 1
+		}
 		if score > bestScore || (score == bestScore && (entry.lastPick < bestLastPick || (entry.lastPick == bestLastPick && c.ID < bestID))) {
 			bestID, bestScore, bestLastPick = c.ID, score, entry.lastPick
+			bestKey = key
 		}
 	}
 	// Evict removed credentials; never retain credential values in cache keys.
@@ -202,7 +241,7 @@ func (s *quotaScheduler) pick(req pluginapi.SchedulerPickRequest) pluginapi.Sche
 	}
 	if bestID != "" {
 		s.sequence++
-		s.entries[provider+":"+bestID].lastPick = s.sequence
+		s.entries[bestKey].lastPick = s.sequence
 		return pluginapi.SchedulerPickResponse{AuthID: bestID, Handled: true}
 	}
 	if len(unknown) == len(req.Candidates) || len(req.Candidates) == 0 {
@@ -215,7 +254,7 @@ func (s *quotaScheduler) pick(req pluginapi.SchedulerPickRequest) pluginapi.Sche
 		bestID = unknown[int((s.sequence-1)%uint64(len(unknown)))]
 		return pluginapi.SchedulerPickResponse{AuthID: bestID, Handled: true}
 	}
-	return pluginapi.SchedulerPickResponse{Handled: true, Reject: true, RejectCode: "quota_exceeded", RejectReason: "All available accounts have exhausted their observed quota; waiting for reset"}
+	return pluginapi.SchedulerPickResponse{Handled: true, Reject: true, RejectCode: "quota_exceeded", RejectReason: "No account has observed quota above its minimum; waiting for quota refresh or reset"}
 }
 
 func (s *quotaScheduler) refresh(key string, entry *cacheEntry, candidate pluginapi.SchedulerAuthCandidate, proxy string) {
