@@ -649,33 +649,6 @@ struct SettingsView: View {
                     }
                 }
 
-                Section("Minimum remaining quota") {
-                    Text("Stop using a subscription when an applicable quota window reaches this percentage or below. It returns automatically after a fresh reading is above the minimum. Default: 0%.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    ForEach(authManager.accounts(for: .claude) + authManager.accounts(for: .codex)) { account in
-                        QuotaMinimumRow(account: account, minimum: serverManager.quotaMinimums[account.id] ?? 0) { percent in
-                            serverManager.setQuotaMinimum(percent, for: account.id)
-                        }
-                    }
-                    // Keep saved policies removable even after an account is deleted.
-                    ForEach(serverManager.quotaMinimums.keys.sorted().filter { id in
-                        !(authManager.accounts(for: .claude) + authManager.accounts(for: .codex)).contains { $0.id == id }
-                    }, id: \.self) { id in
-                        HStack {
-                            Text("\(id) (account unavailable)").font(.caption)
-                            Spacer()
-                            Text("\(serverManager.quotaMinimums[id] ?? 0)%")
-                            Button("Clear") { serverManager.setQuotaMinimum(0, for: id) }
-                        }
-                    }
-                    if !serverManager.quotaMinimums.isEmpty {
-                        Text("Saved minimums keep quota-aware routing enabled. Set all minimums to 0% to choose another routing mode.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                }
-
                 Section("Services") {
                     ServiceRow(
                         serviceType: .antigravity,
@@ -834,6 +807,33 @@ struct SettingsView: View {
                     ) { EmptyView() }
                 }
                 
+                Section("Minimum remaining quota") {
+                    Text("Stop using a subscription when an applicable quota window reaches this percentage or below. It returns automatically after a fresh reading is above the minimum. Default: 0%.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    ForEach(authManager.accounts(for: .claude) + authManager.accounts(for: .codex)) { account in
+                        QuotaMinimumRow(account: account, minimum: serverManager.quotaMinimums[account.id] ?? 0) { percent in
+                            serverManager.setQuotaMinimum(percent, for: account.id)
+                        }
+                    }
+                    // Keep saved policies removable even after an account is deleted.
+                    ForEach(serverManager.quotaMinimums.keys.sorted().filter { id in
+                        !(authManager.accounts(for: .claude) + authManager.accounts(for: .codex)).contains { $0.id == id }
+                    }, id: \.self) { id in
+                        HStack {
+                            Text("\(id) (account unavailable)").font(.caption)
+                            Spacer()
+                            Text("\(serverManager.quotaMinimums[id] ?? 0)%")
+                            Button("Clear") { serverManager.setQuotaMinimum(0, for: id) }
+                        }
+                    }
+                    if !serverManager.quotaMinimums.isEmpty {
+                        Text("Saved minimums keep quota-aware routing enabled. Set all minimums to 0% to choose another routing mode.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+
                 if !serverManager.customProviders.isEmpty {
                     Section("Custom Providers") {
                         ForEach(serverManager.customProviders) { provider in
@@ -864,7 +864,6 @@ struct SettingsView: View {
                 }
             }
             .formStyle(.grouped)
-            .scrollDisabled(expandedRowCount == 0)
 
             Spacer()
                 .frame(height: 6)
