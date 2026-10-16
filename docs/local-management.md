@@ -1,30 +1,31 @@
 # Local management login
 
-Direct loopback management requests can always retry a login. Missing or incorrect
-keys still return HTTP 401, but they never trigger the backend's 30-minute IP ban.
-A correct management key works immediately, including when ban state already
-exists. This applies to IPv4 and IPv6 loopback addresses. Remote management still
-requires `allow-remote`, a valid key, and remains subject to the five-failure ban.
+Direct loopback management requests do not require a password and cannot be
+IP-banned. The dashboard opens automatically on localhost, 127.0.0.1, and ::1.
+Its saved session uses a public marker, not a management credential.
 
-The HTTP middleware checks both the socket peer and the forwarded client address
-before granting the exemption. A remote peer claiming `X-Forwarded-For: 127.0.0.1`
-does not qualify. A raw TCP tunnel that hides the original peer appears local;
-management keys are therefore still required for all requests.
+The backend checks the socket peer, forwarded client address, and loopback Host
+before granting passwordless access. Cross-origin browser requests are rejected.
+Direct remote requests still require `allow-remote` and a valid management key,
+and retain the five-failure ban. A raw TCP tunnel that hides the original peer
+is indistinguishable from a local client and must preserve a non-loopback source.
+The Mac VM bridge uses `TCP:127.0.0.1:8318,bind=10.211.55.2`; the backend therefore
+sees that traffic as remote even if a VM client spoofs a localhost Host header.
+Keep this source binding when changing or recreating that bridge.
 
-`scripts/build-management-backend.py` downloads the SDK version pinned in
-`routing-plugin/go.mod`, checks it against `go.sum`, copies it into a temporary
-build directory, and applies `patches/management/localhost-no-ban.patch`. The Go
-module cache and tracked upstream executable are not edited. `make app` packages
-the patched executable under the existing `cli-proxy-api-plus` name and signs it
-normally. Its version has a `-vibeproxy-local` suffix and its commit field includes
-the patch hash. An upstream version update must also pass patch application and
-the management tests; do not replace this build with an unpatched download.
+`scripts/build-management-backend.py` builds the version pinned in
+`routing-plugin/go.mod`, checks its checksum against `go.sum`, and applies
+`patches/management/localhost-no-ban.patch`. The module cache and tracked upstream
+binary are not changed. `make app` packages this patched executable under the
+existing `cli-proxy-api-plus` name. Its version has a `-vibeproxy-local` suffix
+and its commit field includes the patch hash.
 
-Run `make test-management` for the race-enabled management package tests, including
-repeated failures followed by a correct key, old ban state, configured/environment/
-local passwords, IPv6, remote bans, and forwarded-header spoofing. `make test` also
-runs these checks. `make test-routing` exercises the patched backend with synthetic
-provider accounts; it requires Go 1.27 for process-local TLS trust on macOS.
+Run `make test-management` for race-enabled management tests and `make test` for
+those tests plus Swift and routing tests. `make test-routing` exercises the patched
+backend with synthetic provider accounts. It requires Go 1.27 for process-local
+TLS trust on macOS.
 
-Installing the new app and restarting its backend is required to change an already
-running installation. Rebuilding the bundle alone does not clear a live lockout.
+The dashboard bootstrap is inserted when serving its HTML to loopback clients,
+so an upstream dashboard asset refresh retains local auto-login. It currently
+uses the upstream `cli-proxy-auth` storage contract; verify browser auto-login
+when updating the upstream UI. Install and restart the app to apply a new build.

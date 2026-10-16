@@ -2,23 +2,31 @@
 +++ b/internal/api/handlers/management/handler.go
 @@ -8,0 +9 @@
 +	"net"
-@@ -274 +275,3 @@
+@@ -274 +275,13 @@
 -		localClient := clientIP == "127.0.0.1" || clientIP == "::1"
-+		// Forwarded headers alone must never grant the loopback exemption.
++		// The socket peer, rather than forwarded headers, determines local access.
 +		peerHost, _, _ := net.SplitHostPort(c.Request.RemoteAddr)
 +		localClient := net.ParseIP(peerHost).IsLoopback() && net.ParseIP(clientIP).IsLoopback()
-@@ -322,0 +326,3 @@
-+	// Loopback clients still need a valid key, but may always retry. A stale
-+	// browser key or another local client must not lock the owner out.
-+	localClient = localClient && net.ParseIP(clientIP).IsLoopback()
-@@ -324,0 +331,3 @@
-+	if localClient {
-+		delete(h.failedAttempts, clientIP)
-+	}
-@@ -342,0 +352,3 @@
++		host := c.Request.Host
++		if hostname, _, err := net.SplitHostPort(host); err == nil { host = hostname }
++		localClient = localClient && (strings.EqualFold(host, "localhost") || net.ParseIP(strings.Trim(host, "[]")).IsLoopback())
 +		if localClient {
-+			return
++			origin := c.GetHeader("Origin")
++			if origin != "" && origin != "http://"+c.Request.Host && origin != "https://"+c.Request.Host {
++				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "cross-origin local management is disabled"})
++				return
++			}
 +		}
+@@ -322,0 +336,9 @@
++	// Management is intentionally passwordless on loopback. Remote requests
++	// continue through the configured key and failure-ban checks below.
++	if localClient {
++		h.attemptsMu.Lock()
++		delete(h.failedAttempts, clientIP)
++		h.attemptsMu.Unlock()
++		return true, 0, ""
++	}
++
 --- a/internal/api/handlers/management/handler_test.go
 +++ b/internal/api/handlers/management/handler_test.go
 @@ -14 +14 @@
@@ -33,3 +41,36 @@
 @@ -31 +31 @@
 -	allowed, statusCode, errMsg := h.AuthenticateManagementKey("127.0.0.1", true, "test-secret")
 +	allowed, statusCode, errMsg := h.AuthenticateManagementKey("203.0.113.10", false, "test-secret")
+@@ -46 +46 @@
+-		cfg:            &config.Config{},
++		cfg:            &config.Config{RemoteManagement: config.RemoteManagement{AllowRemote: true}},
+@@ -56 +56 @@
+-		c.Request.RemoteAddr = "127.0.0.1:12345"
++		c.Request.RemoteAddr = "203.0.113.10:12345"
+@@ -77 +77 @@
+-		req.RemoteAddr = "127.0.0.1:12345"
++		req.RemoteAddr = "203.0.113.10:12345"
+--- a/internal/api/server_management.go
++++ b/internal/api/server_management.go
+@@ -4,0 +5 @@
++	"net"
+@@ -336,0 +338,19 @@
++	// Seed the upstream dashboard session only for direct loopback requests.
++	// This is a public marker, not a credential: the backend trusts the peer.
++	peerHost, _, _ := net.SplitHostPort(c.Request.RemoteAddr)
++	if net.ParseIP(peerHost).IsLoopback() && net.ParseIP(c.ClientIP()).IsLoopback() {
++		page, err := os.ReadFile(filePath)
++		if err != nil {
++			c.AbortWithStatus(http.StatusInternalServerError)
++			return
++		}
++		const localSession = `<script>if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
++localStorage.setItem("cli-proxy-auth", JSON.stringify({state:{apiBase:location.origin,managementKey:"vibeproxy-local",rememberPassword:true},version:0}));
++localStorage.setItem("apiBase", JSON.stringify(location.origin));
++localStorage.setItem("managementKey", JSON.stringify("vibeproxy-local"));
++localStorage.setItem("isLoggedIn", "true");
++}</script>`
++		c.Header("Cache-Control", "no-store")
++		c.Data(http.StatusOK, "text/html; charset=utf-8", []byte(strings.Replace(string(page), "<head>", "<head>"+localSession, 1)))
++		return
++	}
