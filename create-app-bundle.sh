@@ -18,6 +18,8 @@ BUILD_DIR="$SRC_DIR/.build/release"
 APP_DIR="$PROJECT_DIR/$APP_NAME.app"
 
 # Build the Swift executable first
+echo "Building backend with local management lockout protection..."
+python3 "$PROJECT_DIR/scripts/build-management-backend.py"
 echo "Building quota-aware routing plugin..."
 bash "$PROJECT_DIR/scripts/build-routing-plugin.sh"
 bash "$PROJECT_DIR/scripts/build-usage-mcp.sh"
@@ -66,6 +68,11 @@ if [ -d "$SRC_DIR/Sources/Resources" ]; then
         fi
     done
 fi
+
+# Use the tested source build, not the unpatched upstream download. Keep the
+# historical executable name used by ServerManager and provider login cleanup.
+cp "$PROJECT_DIR/.routing-build/management-backend/${TARGET_ARCH:-$(uname -m)}/cli-proxy-api-plus" \
+    "$APP_DIR/Contents/Resources/cli-proxy-api-plus"
 
 # Verify critical files were copied
 echo "Checking bundled resources:"

@@ -1,4 +1,4 @@
-.PHONY: build app install clean run test help routing-plugin test-routing usage-mcp
+.PHONY: build app install clean run test help routing-plugin test-routing test-management usage-mcp
 
 help: ## Show this help message
 	@echo "VibeProxy - macOS Menu Bar App"
@@ -40,7 +40,7 @@ clean: ## Clean build artifacts
 	@rm -rf src/Sources/Resources/static
 	@echo "✅ Clean complete"
 
-test: routing-plugin ## Run the Swift and routing test suites
+test: routing-plugin test-management ## Run the Swift, management, and routing test suites
 	@echo "🧪 Running tests..."
 	@cd src && swift test
 	@cd routing-plugin && go test -race ./...
@@ -48,6 +48,9 @@ test: routing-plugin ## Run the Swift and routing test suites
 
 routing-plugin: ## Build the quota-aware routing plugin (requires Go 1.26+)
 	@bash scripts/build-routing-plugin.sh
+
+test-management: ## Verify local login recovery and remote management protection
+	@python3 scripts/build-management-backend.py --test
 
 test-routing: routing-plugin ## Exercise pinned backend routing with mock providers (Go 1.27+)
 	@python3 scripts/test-routing-integration.py

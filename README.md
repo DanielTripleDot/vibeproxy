@@ -213,7 +213,7 @@ VibeProxy is built on top of [CLIProxyAPI](https://github.com/router-for-me/CLIP
 
 Special thanks to the CLIProxyAPI project for providing the core functionality that makes VibeProxy possible.
 
-Earlier releases were built on the now-retired `CLIProxyAPIPlus` fork, which is where the bundled `cli-proxy-api-plus` binary name comes from. Current builds bundle upstream CLIProxyAPI and update to its latest release automatically.
+Earlier releases were built on the now-retired `CLIProxyAPIPlus` fork, which is where the bundled `cli-proxy-api-plus` binary name comes from. This branch builds the CLIProxyAPI version pinned in `routing-plugin/go.mod` with a [local management fix](docs/local-management.md). App bundles use that patched build rather than the downloaded upstream binary.
 
 ## License
 

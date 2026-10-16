@@ -9,7 +9,6 @@ import json
 import os
 import platform
 from pathlib import Path
-import re
 import shutil
 import socket
 import ssl
@@ -28,20 +27,10 @@ fail_high = False
 
 
 def test_backend():
-    shipped = ROOT / "src/Sources/Resources/cli-proxy-api-plus"
-    if platform.system() != "Darwin":
-        return shipped
-    # Go before 1.27 ignores SSL_CERT_FILE on macOS. Compile the exact pinned
-    # backend source with Go 1.27 so TLS fixtures remain process-local. The
-    # shipped backend is never overwritten and system trust is never changed.
-    module = BUILD / "backend"
-    module.mkdir(exist_ok=True)
-    version = re.search(r"github.com/router-for-me/CLIProxyAPI/v8 (v\S+)", (ROOT / "routing-plugin/go.mod").read_text()).group(1)
-    (module / "go.mod").write_text(f"module vibeproxy-routing-integration\n\ngo 1.27.0\n\nrequire github.com/router-for-me/CLIProxyAPI/v8 {version}\n")
-    executable = module / "cli-proxy-api-test"
-    subprocess.run(["go", "build", "-mod=mod", "-o", str(executable), "github.com/router-for-me/CLIProxyAPI/v8/cmd/server"], cwd=module, check=True)
-    print(f"Using pinned CLIProxyAPI {version} source with Go 1.27 for process-local TLS fixtures", flush=True)
-    return executable
+    # Exercise the same patched backend packaged by make app. Go 1.27 honours
+    # SSL_CERT_FILE on macOS so mock-provider trust remains process-local.
+    subprocess.run(["python3", str(ROOT / "scripts/build-management-backend.py")], check=True)
+    return BUILD / "management-backend" / os.environ.get("TARGET_ARCH", platform.machine()) / "cli-proxy-api-plus"
 
 
 class Provider(http.server.BaseHTTPRequestHandler):

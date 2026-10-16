@@ -1,0 +1,35 @@
+--- a/internal/api/handlers/management/handler.go
++++ b/internal/api/handlers/management/handler.go
+@@ -8,0 +9 @@
++	"net"
+@@ -274 +275,3 @@
+-		localClient := clientIP == "127.0.0.1" || clientIP == "::1"
++		// Forwarded headers alone must never grant the loopback exemption.
++		peerHost, _, _ := net.SplitHostPort(c.Request.RemoteAddr)
++		localClient := net.ParseIP(peerHost).IsLoopback() && net.ParseIP(clientIP).IsLoopback()
+@@ -322,0 +326,3 @@
++	// Loopback clients still need a valid key, but may always retry. A stale
++	// browser key or another local client must not lock the owner out.
++	localClient = localClient && net.ParseIP(clientIP).IsLoopback()
+@@ -324,0 +331,3 @@
++	if localClient {
++		delete(h.failedAttempts, clientIP)
++	}
+@@ -342,0 +352,3 @@
++		if localClient {
++			return
++		}
+--- a/internal/api/handlers/management/handler_test.go
++++ b/internal/api/handlers/management/handler_test.go
+@@ -14 +14 @@
+-func TestAuthenticateManagementKey_LocalhostIPBan_BlocksCorrectKeyDuringBan(t *testing.T) {
++func TestAuthenticateManagementKey_RemoteIPBan_BlocksCorrectKeyDuringBan(t *testing.T) {
+@@ -16 +16 @@
+-		cfg:            &config.Config{},
++		cfg:            &config.Config{RemoteManagement: config.RemoteManagement{AllowRemote: true}},
+@@ -22 +22 @@
+-		allowed, statusCode, errMsg := h.AuthenticateManagementKey("127.0.0.1", true, "wrong-secret")
++		allowed, statusCode, errMsg := h.AuthenticateManagementKey("203.0.113.10", false, "wrong-secret")
+@@ -31 +31 @@
+-	allowed, statusCode, errMsg := h.AuthenticateManagementKey("127.0.0.1", true, "test-secret")
++	allowed, statusCode, errMsg := h.AuthenticateManagementKey("203.0.113.10", false, "test-secret")
